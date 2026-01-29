@@ -1,7 +1,8 @@
-import { Input, Select } from "../components/Field";
+import { Input, Label, Select } from "../components/Field";
 
 import Button from "../components/Button";
 import Card from "../components/Card";
+import type { ChangeEvent } from "react";
 import { addRecent } from "../utils/recent";
 import { uploadDocument } from "../api/client";
 import { useNavigate } from "react-router-dom";
@@ -23,16 +24,40 @@ export default function UploadPage() {
 
   return (
     <Card title="Upload Document">
-      <div className="space-y-3">
-        <Input placeholder="SKU" value={sku} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSku(e.target.value)} />
-        <Select value={docType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDocType(e.target.value)}>
-          <option>datasheet</option>
-          <option>manual</option>
-          <option>cert</option>
-        </Select>
-        <Input placeholder="Version" value={version} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVersion(e.target.value)} />
-        <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} />
-        <Button onClick={submit}>Upload</Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>SKU</Label>
+          <Input value={sku} onChange={(e: ChangeEvent<HTMLInputElement>) => setSku(e.target.value)} />
+        </div>
+        <div>
+          <Label>Document Type</Label>
+          <Select value={docType} onChange={(e: ChangeEvent<HTMLSelectElement>) => setDocType(e.target.value)}>
+            <option>datasheet</option>
+            <option>manual</option>
+            <option>certificate</option>
+          </Select>
+        </div>
+        <div>
+          <Label>Version</Label>
+          <Input value={version} onChange={(e: ChangeEvent<HTMLInputElement>) => setVersion(e.target.value)} />
+        </div>
+        <div>
+          <Label>File</Label>
+          <input
+            type="file"
+            className="block w-full rounded-lg border p-2 text-sm"
+            onChange={e => setFile(e.target.files?.[0] || null)}
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <Button
+          onClick={submit}
+          className="bg-brand-accent text-white hover:bg-indigo-700"
+        >
+          Upload
+        </Button>
       </div>
     </Card>
   );
