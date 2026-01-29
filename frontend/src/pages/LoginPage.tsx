@@ -1,70 +1,74 @@
-import { Input, Label } from "../components/Field";
-import { useLocation, useNavigate } from "react-router-dom";
+// src/pages/LoginPage.tsx
+import React, { useState } from "react";
 
-import Button from "../components/Button";
-import Card from "../components/Card";
-import Toast from "../components/Toast";
 import { useAuth } from "../auth/AuthContext";
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+function roleRedirect(role: "admin" | "uploader" | "viewer") {
+  if (role === "viewer") return "/documents";
+  return "/documents"; // admin/uploader ไป documents เหมือนกัน แต่จะเห็นปุ่ม upload
+}
 
 export default function LoginPage() {
   const nav = useNavigate();
-  const loc = useLocation() as any;
-  const { login } = useAuth();
-
+  const { loginWithPassword } = useAuth();
   const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin");
+  const [password, setPassword] = useState("admin123");
+  const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
-  const from = loc?.state?.from || "/documents";
-
-  async function onSubmit() {
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
     setLoading(true);
     try {
-      await login(username.trim(), password);
-      nav(from, { replace: true });
+      const resp = await loginWithPassword(username, password);
+      nav(roleRedirect(resp.user.role), { replace: true });
     } catch (e: any) {
-      setToast(e?.message || "Login failed");
+      setErr(e?.message ?? "Login failed");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <Toast message={toast} onClose={() => setToast(null)} />
-      <Card title="Login">
-        <div className="space-y-3">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow p-6">
+        <h1 className="text-xl font-semibold">Inventory Docs Portal</h1>
+        <p className="text-sm text-slate-500 mt-1">Sign in</p>
+
+        <form className="mt-6 space-y-3" onSubmit={onSubmit}>
           <div>
-            <Label>Username</Label>
-            <Input value={username} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)} />
-          </div>
-          <div>
-            <Label>Password</Label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            <label className="text-sm text-slate-600">Username</label>
+            <input
+              className="mt-1 w-full rounded-lg border px-3 py-2"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
             />
           </div>
 
-          <Button
-            disabled={loading}
-            onClick={onSubmit}
-            className="w-full bg-gray-900 text-white hover:bg-gray-800"
-          >
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-
-          <div className="rounded-lg border bg-gray-50 p-3 text-xs text-gray-600">
-            <div className="font-semibold mb-1">Dev accounts</div>
-            <div>admin / admin</div>
-            <div>uploader / uploader</div>
-            <div>viewer / viewer</div>
+          <div>
+            <label className="text-sm text-slate-600">Password</label>
+            <input
+              type="password"
+              className="mt-1 w-full rounded-lg border px-3 py-2"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
           </div>
-        </div>
-      </Card>
+
+          {err && <div className="text-sm text-red-600">{err}</div>}
+
+          <button
+            disabled={loading}
+            className="w-full rounded-lg bg-slate-900 text-white py-2 font-medium disabled:opacity-60"
+          >
+            {loading ? "Signing in..." : "Login"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

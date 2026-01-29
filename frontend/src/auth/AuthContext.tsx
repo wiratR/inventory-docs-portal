@@ -1,65 +1,52 @@
+import type { AuthUser, LoginResponse } from "../lib/api";
+// src/auth/AuthContext.tsx
 import React, { createContext, useContext, useMemo, useState } from "react";
-import { clearAuth, getAuth, setAuth } from "./auth";
 
-import type { AuthState } from "./auth";
+import { login } from "../lib/api";
 
-type AuthCtx = {
-  auth: AuthState | null;
-  login: (username: string, password: string) => Promise<void>;
+export type AuthState = {
+  token: string;
+  user: AuthUser;
+};
+
+type AuthContextValue = {
+  state: AuthState | null;
+  loginWithPassword: (username: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
 };
 
-const Ctx = createContext<AuthCtx | null>(null);
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+const LS_KEY = "inventory_docs_auth";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [auth, setAuthState] = useState<AuthState | null>(getAuth());
+  const [state, setState] = useState<AuthState | null>(() => {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? (JSON.parse(raw) as AuthState) : null;
+  });
 
-  const api = useMemo<AuthCtx>(
-    () => ({
-      auth,
-      login: async (username: string, password: string) => {
-        // ✅ DEV LOGIN: กำหนด rule ง่าย ๆ
-        // - admin/admin -> admin
-        // - uploader/uploader -> uploader
-        // - viewer/viewer -> viewer
-        // - อย่างอื่นไม่ให้ผ่าน
-        const pair = `${username}:${password}`;
-        if (
-          pair !== "admin:admin" &&
-          pair !== "uploader:uploader" &&
-          pair !== "viewer:viewer"
-        ) {
-          throw new Error("Invalid username or password (dev mode)");
-        }
-
-        const role =
-          username === "admin"
-            ? "admin"
-            : username === "uploader"
-            ? "uploader"
-            : "viewer";
-
-        const state: AuthState = {
-          token: "dev-token-" + Date.now(),
-          user: { username, role },
-        };
-
-        setAuth(state);
-        setAuthState(state);
+  const value = useMemo<AuthContextValue>(() => {
+    return {
+      state,
+      loginWithPassword: async (username, password) => {
+        const resp = await login(username, password);
+        const next: AuthState = { token: resp.token, user: resp.user };
+        setState(next);
+        localStorage.setItem(LS_KEY, JSON.stringify(next));
+        return resp;
       },
       logout: () => {
-        clearAuth();
-        setAuthState(null);
+        setState(null);
+        localStorage.removeItem(LS_KEY);
       },
-    }),
-    [auth]
-  );
+    };
+  }, [state]);
 
-  return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const ctx = useContext(Ctx);
+  const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }

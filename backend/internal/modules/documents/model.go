@@ -17,3 +17,12 @@ type Document struct {
 	CreatedBy string    `json:"createdBy"`
 	CreatedAt time.Time `json:"createdAt"`
 }
+
+type ListParams struct {
+	Q       string
+	DocType string
+	Sort    string
+	Order   string
+	Limit   int
+	Offset  int
+}

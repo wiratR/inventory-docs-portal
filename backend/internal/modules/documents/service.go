@@ -1,6 +1,7 @@
 package documents
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
@@ -13,6 +14,9 @@ import (
 type Repo interface {
 	Create(doc Document) (string, error)
 	GetByID(id string) (Document, error)
+
+	// ✅ เพิ่มสำหรับ list
+	List(ctx context.Context, p ListParams) ([]Document, int, error)
 }
 
 type Service struct {
@@ -73,4 +77,9 @@ func (s *Service) Get(id string) (Document, error) {
 
 func (s *Service) OpenFile(fileKey string) (storage.Stream, error) {
 	return s.Store.Open(fileKey)
+}
+
+// ✅ เพิ่ม List สำหรับ Handler
+func (s *Service) List(ctx context.Context, p ListParams) ([]Document, int, error) {
+	return s.Repo.List(ctx, p)
 }

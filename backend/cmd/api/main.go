@@ -5,7 +5,7 @@ import (
 
 	"inventory-docs-portal/internal/config"
 	"inventory-docs-portal/internal/db"
-	httpapp "inventory-docs-portal/internal/http"
+	httpserver "inventory-docs-portal/internal/http"
 	"inventory-docs-portal/internal/modules/documents"
 	"inventory-docs-portal/internal/storage"
 )
@@ -28,17 +28,22 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Modules
+	// Documents module
 	docRepo := documents.NewPGRepo(pg)
 	docSvc := documents.NewService(docRepo, store)
 	docHandler := documents.NewHandler(docSvc, cfg.MaxUploadMB)
 
-	// HTTP
-	app := httpapp.New(cfg)
-	httpapp.Register(app, httpapp.Deps{
+	// HTTP server (wire ทุกอย่างที่นี่)
+	app := httpserver.New(cfg, httpserver.Deps{
+		DB:         pg,
 		DocHandler: docHandler,
 	})
 
-	log.Printf("%s listening on :%s (storage=%s)", cfg.AppName, cfg.HTTPPort, cfg.StorageDriver)
+	log.Printf(
+		"%s listening on :%s (storage=%s)",
+		cfg.AppName,
+		cfg.HTTPPort,
+		cfg.StorageDriver,
+	)
 	log.Fatal(app.Listen(":" + cfg.HTTPPort))
 }

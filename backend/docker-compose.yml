@@ -23,5 +23,15 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
+  seed:
+    build: .
+    container_name: inventory-docs-seed
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    command: ["/app/seed"]
+    restart: "no"
+
 volumes:
   pgdata:
