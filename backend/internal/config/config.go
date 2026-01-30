@@ -32,9 +32,20 @@ type Config struct {
 }
 
 func Load() Config {
-	maxMB, _ := strconv.ParseInt(getenv("MAX_UPLOAD_MB", "50"), 10, 64)
-	timeoutSec, _ := strconv.Atoi(getenv("WEBDAV_TIMEOUT_SECONDS", "60"))
-	jwtExpireMin, _ := strconv.Atoi(getenv("JWT_EXPIRES_MINUTES", "60"))
+	maxMB, err := strconv.ParseInt(getenv("MAX_UPLOAD_MB", "50"), 10, 64)
+	if err != nil || maxMB <= 0 {
+		maxMB = 50
+	}
+
+	timeoutSec, err := strconv.Atoi(getenv("WEBDAV_TIMEOUT_SECONDS", "60"))
+	if err != nil || timeoutSec <= 0 {
+		timeoutSec = 60
+	}
+
+	jwtExpireMin, err := strconv.Atoi(getenv("JWT_EXPIRES_MINUTES", "60"))
+	if err != nil || jwtExpireMin <= 0 {
+		jwtExpireMin = 60
+	}
 
 	return Config{
 		AppName:       getenv("APP_NAME", "inventory-docs-portal"),

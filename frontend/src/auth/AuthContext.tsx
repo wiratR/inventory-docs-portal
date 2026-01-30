@@ -1,8 +1,14 @@
-import type { AuthUser, LoginResponse } from "../lib/api";
-// src/auth/AuthContext.tsx
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-import { login } from "../lib/api";
+import { apiFetch } from "../api/api";
+
+export type Role = "admin" | "uploader" | "viewer";
+
+export type AuthUser = {
+  id: string;
+  username: string;
+  role: Role;
+};
 
 export type AuthState = {
   token: string;
@@ -11,36 +17,83 @@ export type AuthState = {
 
 type AuthContextValue = {
   state: AuthState | null;
-  loginWithPassword: (username: string, password: string) => Promise<LoginResponse>;
+
+  // ✅ ใช้ใน LoginPage
+  isAuthed: boolean;
+  role: Role | "";
+
+  // permissions
+  canUpload: boolean;
+
+  // actions
+  loginWithPassword: (username: string, password: string) => Promise<void>;
   logout: () => void;
+
+  // routing helper
+  redirectPathForRole: (role: Role) => string;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const LS_KEY = "inventory_docs_auth";
+const STORAGE_KEY = "invdocs_auth";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState | null>(() => {
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? (JSON.parse(raw) as AuthState) : null;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
   });
 
-  const value = useMemo<AuthContextValue>(() => {
-    return {
-      state,
-      loginWithPassword: async (username, password) => {
-        const resp = await login(username, password);
-        const next: AuthState = { token: resp.token, user: resp.user };
-        setState(next);
-        localStorage.setItem(LS_KEY, JSON.stringify(next));
-        return resp;
-      },
-      logout: () => {
-        setState(null);
-        localStorage.removeItem(LS_KEY);
-      },
-    };
+  // persist
+  useEffect(() => {
+    if (state) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    else localStorage.removeItem(STORAGE_KEY);
   }, [state]);
+
+  // ===== derived =====
+  const isAuthed = !!state?.token;
+  const role = state?.user?.role ?? "";
+  const canUpload = role === "admin" || role === "uploader";
+
+  // ===== actions =====
+  const loginWithPassword = async (username: string, password: string) => {
+    const res = await apiFetch<AuthState>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+    setState(res);
+  };
+
+  const logout = () => {
+    setState(null);
+  };
+
+  // ===== routing helper =====
+  const redirectPathForRole = (role: Role) => {
+    switch (role) {
+      case "admin":
+      case "uploader":
+      case "viewer":
+      default:
+        return "/documents";
+    }
+  };
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      state,
+      isAuthed,
+      role,
+      canUpload,
+      loginWithPassword,
+      logout,
+      redirectPathForRole,
+    }),
+    [state, isAuthed, role, canUpload]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

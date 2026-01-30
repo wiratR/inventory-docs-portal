@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"inventory-docs-portal/internal/config"
 	"inventory-docs-portal/internal/db"
@@ -31,7 +32,15 @@ func main() {
 	// Documents module
 	docRepo := documents.NewPGRepo(pg)
 	docSvc := documents.NewService(docRepo, store)
-	docHandler := documents.NewHandler(docSvc, cfg.MaxUploadMB)
+
+	// ✅ Option A: Signed link (ใช้ JWT_SECRET เป็น secret ได้)
+	// แนะนำ TTL 5-15 นาที
+	docHandler := documents.NewHandlerWithSignedLink(
+		docSvc,
+		cfg.MaxUploadMB,
+		cfg.JWTSecret,
+		10*time.Minute,
+	)
 
 	// HTTP server (wire ทุกอย่างที่นี่)
 	app := httpserver.New(cfg, httpserver.Deps{

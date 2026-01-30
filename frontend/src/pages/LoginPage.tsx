@@ -1,73 +1,78 @@
-// src/pages/LoginPage.tsx
-import React, { useState } from "react";
+import { Button, Card, CardBody, Input } from "../components/ui";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-function roleRedirect(role: "admin" | "uploader" | "viewer") {
-  if (role === "viewer") return "/documents";
-  return "/documents"; // admin/uploader ไป documents เหมือนกัน แต่จะเห็นปุ่ม upload
-}
+import { useToast } from "../components/Toast";
 
 export default function LoginPage() {
   const nav = useNavigate();
-  const { loginWithPassword } = useAuth();
+  const { isAuthed, role, loginWithPassword, redirectPathForRole } = useAuth();
+  const { push } = useToast();
+
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
-  const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    if (isAuthed && role) nav(redirectPathForRole(role), { replace: true });
+  }, [isAuthed, role, nav, redirectPathForRole]);
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErr(null);
     setLoading(true);
     try {
-      const resp = await loginWithPassword(username, password);
-      nav(roleRedirect(resp.user.role), { replace: true });
-    } catch (e: any) {
-      setErr(e?.message ?? "Login failed");
+      await loginWithPassword(username, password);
+      push({ type: "success", message: "Logged in" });
+      // redirect จะโดน useEffect จัดให้
+    } catch (err: any) {
+      push({ type: "error", message: err?.message || "Login failed" });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow p-6">
-        <h1 className="text-xl font-semibold">Inventory Docs Portal</h1>
-        <p className="text-sm text-slate-500 mt-1">Sign in</p>
-
-        <form className="mt-6 space-y-3" onSubmit={onSubmit}>
-          <div>
-            <label className="text-sm text-slate-600">Username</label>
-            <input
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-            />
+    <div className="min-h-full grid place-items-center p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-4">
+          <div className="text-white text-2xl font-semibold">
+            Inventory Docs Portal
           </div>
-
-          <div>
-            <label className="text-sm text-slate-600">Password</label>
-            <input
-              type="password"
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
+          <div className="text-white/60 text-sm">
+            Sign in to continue
           </div>
+        </div>
 
-          {err && <div className="text-sm text-red-600">{err}</div>}
+        <Card>
+          <CardBody>
+            <form onSubmit={onSubmit} className="space-y-3">
+              <Input
+                label="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+              />
+              <Input
+                label="Password"
+                value={password}
+                type="password"
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
 
-          <button
-            disabled={loading}
-            className="w-full rounded-lg bg-slate-900 text-white py-2 font-medium disabled:opacity-60"
-          >
-            {loading ? "Signing in..." : "Login"}
-          </button>
-        </form>
+              <div className="pt-2">
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Signing in..." : "Login"}
+                </Button>
+              </div>
+
+              <div className="text-xs text-white/50 pt-2">
+                Test users: admin/admin123, uploader/uploader123, viewer/viewer123
+              </div>
+            </form>
+          </CardBody>
+        </Card>
       </div>
     </div>
   );

@@ -11,9 +11,16 @@ import (
 func RequireAuth(secret string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		h := c.Get("Authorization")
+
+		// ✅ รองรับ token ใน query สำหรับ view/download (window.open ส่ง header ไม่ได้)
+		if (h == "" || !strings.HasPrefix(h, "Bearer ")) && c.Query("token") != "" {
+			h = "Bearer " + c.Query("token")
+		}
+
 		if h == "" || !strings.HasPrefix(h, "Bearer ") {
 			return fiber.NewError(fiber.StatusUnauthorized, "missing bearer token")
 		}
+
 		token := strings.TrimPrefix(h, "Bearer ")
 		claims, err := auth.VerifyJWT(secret, token)
 		if err != nil {

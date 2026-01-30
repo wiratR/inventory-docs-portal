@@ -1,46 +1,31 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import AppShell from "./components/AppShell";
-import DocumentDetailPage from "./pages/DocumentDetailPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import LoginPage from "./pages/LoginPage";
-import RequireAuth from "./auth/RequireAuth";
-import UploadPage from "./pages/UploadPage";
+import React from "react";
+import { useAuth } from "./auth/AuthContext";
+
+function Protected({ children }: { children: React.ReactElement }) {
+  const { state } = useAuth();
+  if (!state?.token) return <Navigate to="/login" replace />;
+  return children;
+}
 
 export default function App() {
   return (
-    <AppShell>
+    <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/documents" replace />} />
         <Route path="/login" element={<LoginPage />} />
-
         <Route
           path="/documents"
           element={
-            <RequireAuth>
+            <Protected>
               <DocumentsPage />
-            </RequireAuth>
+            </Protected>
           }
         />
-        <Route
-          path="/upload"
-          element={
-            <RequireAuth>
-              <UploadPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/documents/:id"
-          element={
-            <RequireAuth>
-              <DocumentDetailPage />
-            </RequireAuth>
-          }
-        />
-
-        <Route path="*" element={<div className="p-6">Not found</div>} />
+        <Route path="*" element={<Navigate to="/documents" replace />} />
       </Routes>
-    </AppShell>
+    </BrowserRouter>
   );
 }

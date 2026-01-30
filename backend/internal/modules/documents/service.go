@@ -28,7 +28,12 @@ func NewService(repo Repo, store storage.Storage) *Service {
 	return &Service{Repo: repo, Store: store}
 }
 
-func (s *Service) Upload(sku, docType, version, title, originalFileName, mime string, size int64, file io.Reader) (Document, error) {
+func (s *Service) Upload(
+	sku, docType, version, title,
+	originalFileName, mime string,
+	size int64,
+	file io.Reader,
+) (Document, error) {
 	internalName := utils.NewUUID() + "_" + utils.SanitizeFileName(originalFileName)
 	fileKey := "products/" + sku + "/" + docType + "/" + version + "/" + internalName
 
@@ -67,7 +72,6 @@ func (s *Service) Upload(sku, docType, version, title, originalFileName, mime st
 		return Document{}, err
 	}
 	doc.ID = id
-
 	return doc, nil
 }
 
@@ -79,7 +83,7 @@ func (s *Service) OpenFile(fileKey string) (storage.Stream, error) {
 	return s.Store.Open(fileKey)
 }
 
-// ✅ เพิ่ม List สำหรับ Handler
+// ✅ List สำหรับ handler
 func (s *Service) List(ctx context.Context, p ListParams) ([]Document, int, error) {
 	return s.Repo.List(ctx, p)
 }
